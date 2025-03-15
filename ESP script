@@ -1,0 +1,196 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local ESP = {} -- Store ESP lines
+local ESPEnabled = false -- Toggle status
+
+-- Function to create a red line
+local function createLine()
+    local line = Drawing.new("Line")
+    line.Thickness = 2
+    line.Transparency = 1
+    line.Color = Color3.fromRGB(255, 0, 0) -- RED skeleton
+    return line
+end
+
+-- Function to remove a player's ESP when they leave
+local function removeESP(player)
+    if ESP[player] then
+        for _, line in pairs(ESP[player]) do
+            line:Remove() -- Properly destroy lines
+        end
+        ESP[player] = nil -- Remove reference
+    end
+end
+
+-- Function to get screen position of a part
+local function getScreenPosition(part)
+    if part and part:IsA("BasePart") then
+        local vector, onScreen = Camera:WorldToViewportPoint(part.Position)
+        if onScreen then
+            return Vector2.new(vector.X, vector.Y)
+        end
+    end
+    return nil
+end
+
+-- Function to update the skeleton ESP
+local function updateSkeleton()
+    if not ESPEnabled then
+        for _, lines in pairs(ESP) do
+            for _, line in pairs(lines) do
+                line.Visible = false
+            end
+        end
+        return
+    end
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local character = player.Character
+
+            -- Get body parts
+            local head = character:FindFirstChild("Head")
+            local root = character:FindFirstChild("HumanoidRootPart")
+            local upperTorso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
+            local lowerTorso = character:FindFirstChild("LowerTorso") or upperTorso
+            local leftUpperArm = character:FindFirstChild("LeftUpperArm")
+            local leftLowerArm = character:FindFirstChild("LeftLowerArm")
+            local leftHand = character:FindFirstChild("LeftHand")
+            local rightUpperArm = character:FindFirstChild("RightUpperArm")
+            local rightLowerArm = character:FindFirstChild("RightLowerArm")
+            local rightHand = character:FindFirstChild("RightHand")
+            local leftUpperLeg = character:FindFirstChild("LeftUpperLeg")
+            local leftLowerLeg = character:FindFirstChild("LeftLowerLeg")
+            local leftFoot = character:FindFirstChild("LeftFoot")
+            local rightUpperLeg = character:FindFirstChild("RightUpperLeg")
+            local rightLowerLeg = character:FindFirstChild("RightLowerLeg")
+            local rightFoot = character:FindFirstChild("RightFoot")
+
+            -- Only proceed if necessary parts exist
+            if root and head and upperTorso and lowerTorso and leftUpperArm and rightUpperArm and leftUpperLeg and rightUpperLeg then
+                -- Get screen positions
+                local positions = {
+                    Head = getScreenPosition(head),
+                    UpperTorso = getScreenPosition(upperTorso),
+                    LowerTorso = getScreenPosition(lowerTorso),
+                    LeftUpperArm = getScreenPosition(leftUpperArm),
+                    LeftLowerArm = getScreenPosition(leftLowerArm),
+                    LeftHand = getScreenPosition(leftHand),
+                    RightUpperArm = getScreenPosition(rightUpperArm),
+                    RightLowerArm = getScreenPosition(rightLowerArm),
+                    RightHand = getScreenPosition(rightHand),
+                    LeftUpperLeg = getScreenPosition(leftUpperLeg),
+                    LeftLowerLeg = getScreenPosition(leftLowerLeg),
+                    LeftFoot = getScreenPosition(leftFoot),
+                    RightUpperLeg = getScreenPosition(rightUpperLeg),
+                    RightLowerLeg = getScreenPosition(rightLowerLeg),
+                    RightFoot = getScreenPosition(rightFoot),
+                }
+
+                local function isOnScreen(pos)
+                    return pos ~= nil
+                end
+
+                if isOnScreen(positions.Head) and isOnScreen(positions.UpperTorso) then
+                    -- Create lines if missing
+                    if not ESP[player] then
+                        ESP[player] = {
+                            HeadToUpperTorso = createLine(),
+                            UpperTorsoToLowerTorso = createLine(),
+                            LowerTorsoToLeftLeg = createLine(),
+                            LowerTorsoToRightLeg = createLine(),
+                            UpperTorsoToLeftArm = createLine(),
+                            LeftUpperArmToLowerArm = createLine(),
+                            LeftLowerArmToHand = createLine(),
+                            UpperTorsoToRightArm = createLine(),
+                            RightUpperArmToLowerArm = createLine(),
+                            RightLowerArmToHand = createLine(),
+                            LeftUpperLegToLowerLeg = createLine(),
+                            LeftLowerLegToFoot = createLine(),
+                            RightUpperLegToLowerLeg = createLine(),
+                            RightLowerLegToFoot = createLine()
+                        }
+                    end
+
+                    -- Get stored lines
+                    local lines = ESP[player]
+
+                    -- Connecting skeleton parts
+                    lines.HeadToUpperTorso.From = positions.Head
+                    lines.HeadToUpperTorso.To = positions.UpperTorso
+
+                    lines.UpperTorsoToLowerTorso.From = positions.UpperTorso
+                    lines.UpperTorsoToLowerTorso.To = positions.LowerTorso
+
+                    lines.LowerTorsoToLeftLeg.From = positions.LowerTorso
+                    lines.LowerTorsoToLeftLeg.To = positions.LeftUpperLeg
+
+                    lines.LowerTorsoToRightLeg.From = positions.LowerTorso
+                    lines.LowerTorsoToRightLeg.To = positions.RightUpperLeg
+
+                    -- **Arms attach to center of upper torso**
+                    lines.UpperTorsoToLeftArm.From = positions.UpperTorso
+                    lines.UpperTorsoToLeftArm.To = positions.LeftUpperArm
+
+                    lines.LeftUpperArmToLowerArm.From = positions.LeftUpperArm
+                    lines.LeftUpperArmToLowerArm.To = positions.LeftLowerArm
+
+                    lines.LeftLowerArmToHand.From = positions.LeftLowerArm
+                    lines.LeftLowerArmToHand.To = positions.LeftHand
+
+                    lines.UpperTorsoToRightArm.From = positions.UpperTorso
+                    lines.UpperTorsoToRightArm.To = positions.RightUpperArm
+
+                    lines.RightUpperArmToLowerArm.From = positions.RightUpperArm
+                    lines.RightUpperArmToLowerArm.To = positions.RightLowerArm
+
+                    lines.RightLowerArmToHand.From = positions.RightLowerArm
+                    lines.RightLowerArmToHand.To = positions.RightHand
+
+                    lines.LeftUpperLegToLowerLeg.From = positions.LeftUpperLeg
+                    lines.LeftUpperLegToLowerLeg.To = positions.LeftLowerLeg
+
+                    lines.LeftLowerLegToFoot.From = positions.LeftLowerLeg
+                    lines.LeftLowerLegToFoot.To = positions.LeftFoot
+
+                    lines.RightUpperLegToLowerLeg.From = positions.RightUpperLeg
+                    lines.RightUpperLegToLowerLeg.To = positions.RightLowerLeg
+
+                    lines.RightLowerLegToFoot.From = positions.RightLowerLeg
+                    lines.RightLowerLegToFoot.To = positions.RightFoot
+
+                    -- Make all lines visible
+                    for _, line in pairs(lines) do
+                        line.Visible = true
+                    end
+                else
+                    -- Hide lines when player is off-screen
+                    if ESP[player] then
+                        for _, line in pairs(ESP[player]) do
+                            line.Visible = false
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Remove ESP when a player leaves
+Players.PlayerRemoving:Connect(removeESP)
+
+-- Toggle ESP on/off when pressing "T"
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.T then
+        ESPEnabled = not ESPEnabled
+        print("ESP is now", ESPEnabled and "ON" or "OFF")
+    end
+end)
+
+-- Run ESP update every frame (optimized)
+RunService.RenderStepped:Connect(updateSkeleton)
