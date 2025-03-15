@@ -1,0 +1,59 @@
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = game.Players.LocalPlayer
+
+local minWalkSpeed = 1
+local maxWalkSpeed = 10000
+local defaultWalkSpeed = 16
+local speedChangeRate = 50  -- The rate at which the speed changes when holding the key
+
+-- Function to set up the walk speed controls
+local function setupWalkSpeed()
+    local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local Humanoid = Character:WaitForChild("Humanoid")
+
+    local walkSpeed = defaultWalkSpeed
+    Humanoid.WalkSpeed = walkSpeed  -- Set the initial walk speed
+
+    local increaseSpeed = false
+    local decreaseSpeed = false
+
+    -- Update walk speed based on key input
+    local function updateWalkSpeed()
+        if increaseSpeed then
+            walkSpeed = math.min(walkSpeed + speedChangeRate * game:GetService("RunService").Heartbeat:Wait(), maxWalkSpeed)
+        elseif decreaseSpeed then
+            walkSpeed = math.max(walkSpeed - speedChangeRate * game:GetService("RunService").Heartbeat:Wait(), minWalkSpeed)
+        end
+        Humanoid.WalkSpeed = walkSpeed
+    end
+
+    -- Handle key input for increasing or decreasing speed
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+
+        if input.KeyCode == Enum.KeyCode.Equals then  -- "=" key
+            increaseSpeed = true
+        elseif input.KeyCode == Enum.KeyCode.Minus then  -- "-" key
+            decreaseSpeed = true
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.KeyCode == Enum.KeyCode.Equals then
+            increaseSpeed = false
+        elseif input.KeyCode == Enum.KeyCode.Minus then
+            decreaseSpeed = false
+        end
+    end)
+
+    -- Continuously update walk speed
+    game:GetService("RunService").Heartbeat:Connect(updateWalkSpeed)
+end
+
+-- Call the function when the character is added or respawned
+LocalPlayer.CharacterAdded:Connect(setupWalkSpeed)
+
+-- Set up the walk speed for the initial character when the script first runs
+if LocalPlayer.Character then
+    setupWalkSpeed()
+end
