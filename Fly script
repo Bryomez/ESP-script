@@ -1,1 +1,105 @@
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Camera = game.Workspace.CurrentCamera
+local Workspace = game:GetService("Workspace")
+
+local defaultWalkSpeed = 16
+local flying = false
+local flySpeed = defaultWalkSpeed  -- Fly speed will match walk speed initially
+local currentSpeed = defaultWalkSpeed  -- Keeps track of the speed before flight toggle
+local originalCollisions = {}
+
+-- Function to toggle flying
+local function toggleFlying()
+    local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local Humanoid = Character:WaitForChild("Humanoid")
+    local RootPart = Character:WaitForChild("HumanoidRootPart")
+
+    -- Toggle flight state
+    flying = not flying
+
+    if flying then
+        -- Set the player's walk speed to the current speed when flying
+        Humanoid.WalkSpeed = currentSpeed
+        
+        -- Save the collision states of all parts around the player
+        for _, part in pairs(Workspace:GetDescendants()) do
+            if part:IsA("BasePart") and part:IsDescendantOf(Character) == false then
+                originalCollisions[part] = part.CanCollide
+                part.CanCollide = false
+            end
+        end
+
+        -- Create BodyVelocity to simulate flying
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)  -- Allow full control
+        bodyVelocity.Velocity = Vector3.new(0, 0, 0)  -- Zero out velocity initially
+        bodyVelocity.Parent = RootPart
+
+        -- Update velocity to simulate flying
+        RunService.RenderStepped:Connect(function(_, dt)
+            if flying then
+                -- Get camera's orientation vectors (forward, right, and up)
+                local cameraForward = Camera.CFrame.LookVector
+                local cameraRight = Camera.CFrame.RightVector
+                local cameraUp = Camera.CFrame.UpVector
+
+                -- Get movement direction based on player's input
+                local moveDirection = Vector3.new(0, 0, 0)
+
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                    moveDirection = moveDirection + cameraForward
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                    moveDirection = moveDirection - cameraForward
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                    moveDirection = moveDirection - cameraRight
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                    moveDirection = moveDirection + cameraRight
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                    moveDirection = moveDirection + cameraUp  -- Move up
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+                    moveDirection = moveDirection - cameraUp  -- Move down
+                end
+
+                -- Normalize the direction vector and apply the current speed
+                if moveDirection.magnitude > 0 then
+                    moveDirection = moveDirection.unit * currentSpeed
+                end
+
+                -- Set the velocity to move the player in the direction based on camera orientation
+                bodyVelocity.Velocity = moveDirection
+            else
+                bodyVelocity:Destroy()
+            end
+        end)
+    else
+        -- Restore normal walking speed and remove flying body velocity
+        Humanoid.WalkSpeed = defaultWalkSpeed
+
+        -- Restore original collision states
+        for part, originalCanCollide in pairs(originalCollisions) do
+            if part and part.Parent then
+                part.CanCollide = originalCanCollide
+            end
+        end
+        originalCollisions = {}  -- Reset the original collisions after restoration
+    end
+end
+
+-- Handle key input for toggling flight
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.KeyCode == Enum.KeyCode.F then  -- F key to toggle flight
+        -- Save the current walk speed before toggling flight
+        currentSpeed = LocalPlayer.Character.Humanoid.WalkSpeed
+        toggleFlying()
+    end
+end)
 
