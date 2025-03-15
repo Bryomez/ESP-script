@@ -60,11 +60,11 @@ local function toggleFlying()
                 if UserInputService:IsKeyDown(Enum.KeyCode.D) then
                     moveDirection = moveDirection + cameraRight
                 end
-                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                    moveDirection = moveDirection + cameraUp  -- Move up
+                if UserInputService:IsKeyDown(Enum.KeyCode.E) then
+                    moveDirection = moveDirection + cameraUp  -- Move up when E is pressed
                 end
-                if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-                    moveDirection = moveDirection - cameraUp  -- Move down
+                if UserInputService:IsKeyDown(Enum.KeyCode.Q) then
+                    moveDirection = moveDirection - cameraUp  -- Move down when Q is pressed
                 end
 
                 -- Normalize the direction vector and apply the current speed
@@ -102,4 +102,3 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         toggleFlying()
     end
 end)
-
