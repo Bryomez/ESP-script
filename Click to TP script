@@ -1,0 +1,36 @@
+-- Services
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+
+-- Variable to track if Ctrl is being held
+local isCtrlHeld = false
+
+-- Function to check if Ctrl key is held down
+local function onInputBegan(input)
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.LeftControl then
+        isCtrlHeld = true
+    end
+end
+
+-- Function to check if Ctrl key is released
+local function onInputEnded(input)
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.LeftControl then
+        isCtrlHeld = false
+    end
+end
+
+-- Function to handle the left click event
+local function onMouseClick()
+    if isCtrlHeld then
+        local cursorPosition = mouse.Hit.p
+        -- Teleport the player to the cursor position
+        player.Character:SetPrimaryPartCFrame(CFrame.new(cursorPosition))
+    end
+end
+
+-- Connect the input events
+UserInputService.InputBegan:Connect(onInputBegan)
+UserInputService.InputEnded:Connect(onInputEnded)
+mouse.Button1Down:Connect(onMouseClick)
