@@ -6,12 +6,15 @@ local maxWalkSpeed = 10000
 local defaultWalkSpeed = 16
 local speedChangeRate = 50  -- The rate at which the speed changes when holding the key
 
+local savedWalkSpeed = defaultWalkSpeed  -- Store the walk speed across deaths
+
 -- Function to set up the walk speed controls
 local function setupWalkSpeed()
     local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local Humanoid = Character:WaitForChild("Humanoid")
 
-    local walkSpeed = defaultWalkSpeed
+    -- Set walk speed to the saved walk speed
+    local walkSpeed = savedWalkSpeed
     Humanoid.WalkSpeed = walkSpeed  -- Set the initial walk speed
 
     local increaseSpeed = false
@@ -48,10 +51,17 @@ local function setupWalkSpeed()
 
     -- Continuously update walk speed
     game:GetService("RunService").Heartbeat:Connect(updateWalkSpeed)
+
+    -- Save walk speed before the player dies
+    Humanoid.Died:Connect(function()
+        savedWalkSpeed = Humanoid.WalkSpeed  -- Save the current walk speed
+    end)
 end
 
 -- Call the function when the character is added or respawned
-LocalPlayer.CharacterAdded:Connect(setupWalkSpeed)
+LocalPlayer.CharacterAdded:Connect(function()
+    setupWalkSpeed()
+end)
 
 -- Set up the walk speed for the initial character when the script first runs
 if LocalPlayer.Character then
