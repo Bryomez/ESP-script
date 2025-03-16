@@ -1,0 +1,101 @@
+--// Legit Aim Assist Script (Head Target Lock Through Walls) with Smoothness Key Bind
+--// Created for educational purposes
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Camera = game:GetService("Workspace").CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+-- Settings
+local AimAssistEnabled = true
+local AimKey = Enum.UserInputType.MouseButton2 -- Right Mouse Button (Hold to aim)
+local AimFOV = 100 -- Field of View for aim assist
+local Smoothness = 5 -- Default Smoothness (starting value)
+local SmoothnessMin = 1 -- Minimum Smoothness
+local SmoothnessMax = 50 -- Maximum Smoothness
+
+-- Create a FOV Circle
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Color = Color3.fromRGB(255, 0, 255) -- Magenta color
+FOVCircle.Thickness = 2
+FOVCircle.Filled = false
+FOVCircle.Transparency = 0.7
+
+-- Function to find the closest target within the Aim FOV (ignore obstacles like walls)
+local function GetClosestTarget()
+    local closestTarget = nil
+    local shortestDistance = AimFOV
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local character = player.Character
+            local head = character:FindFirstChild("Head")
+            if head then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                if onScreen then
+                    local mousePos = UserInputService:GetMouseLocation()
+                    local targetPos = Vector2.new(screenPos.X, screenPos.Y)
+                    local distance = (mousePos - targetPos).Magnitude
+                    
+                    if distance < shortestDistance then
+                        -- Skip raycasting (not checking if the head is visible through walls)
+                        shortestDistance = distance
+                        closestTarget = head
+                    end
+                end
+            end
+        end
+    end
+
+    return closestTarget
+end
+
+-- Function to smoothly aim at the target
+local function AimAtTarget(target)
+    if target then
+        local targetScreenPos = Camera:WorldToViewportPoint(target.Position)
+        local mousePos = UserInputService:GetMouseLocation()
+        local aimPos = Vector2.new(targetScreenPos.X, targetScreenPos.Y)
+
+        -- Smoothly move the mouse toward the target
+        local newMousePos = mousePos:Lerp(aimPos, 1 / Smoothness)
+        mousemoverel(newMousePos.X - mousePos.X, newMousePos.Y - mousePos.Y)
+    end
+end
+
+-- Function to handle key press for adjusting smoothness
+local function OnInputBegan(input)
+    if input.KeyCode == Enum.KeyCode.Minus then
+        -- Decrease smoothness
+        Smoothness = math.max(Smoothness - 1, SmoothnessMin)
+        print("[Smoothness] Decreased to: " .. Smoothness)
+    elseif input.KeyCode == Enum.KeyCode.Equals then
+        -- Increase smoothness
+        Smoothness = math.min(Smoothness + 1, SmoothnessMax)
+        print("[Smoothness] Increased to: " .. Smoothness)
+    end
+end
+
+-- Connect input handling for smoothness adjustment
+UserInputService.InputBegan:Connect(OnInputBegan)
+
+-- Main loop
+RunService.RenderStepped:Connect(function()
+    -- Get the exact mouse position
+    local mousePos = UserInputService:GetMouseLocation()
+
+    -- Keep FOV circle perfectly centered on the cursor
+    FOVCircle.Position = Vector2.new(mousePos.X, mousePos.Y)
+    FOVCircle.Radius = AimFOV
+
+    -- Aim assist logic (lock on head through walls)
+    if AimAssistEnabled and UserInputService:IsMouseButtonPressed(AimKey) then
+        local target = GetClosestTarget()
+        AimAtTarget(target)
+    end
+end)
+
+print("[Aim Assist] Script loaded successfully! Aim assist now locks onto heads through walls.")
+print("[Aim Assist] Default smoothness is set to " .. Smoothness)
+print("[Smoothness] Smoothness can be adjusted with the '-' (decrease) and '=' (increase) keys.")
